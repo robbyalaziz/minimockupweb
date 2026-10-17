@@ -2,7 +2,7 @@
 
 A fast, responsive, and feature-packed in-browser vector design tool built with **React**, **TypeScript**, **Tailwind CSS**, and **Vite**.
 
-![Mini Figma Interface](https://raw.githubusercontent.com/morluto/mini-figma/main/preview.png)
+![Mini Figma Interface](https://raw.githubusercontent.com/robbyalaziz/mini-figma/main/preview.png)
 
 ## ✨ Features
 
@@ -54,7 +54,7 @@ A fast, responsive, and feature-packed in-browser vector design tool built with 
 
 ```bash
 # Clone the repository
-git clone https://github.com/morluto/mini-figma.git
+git clone https://github.com/robbyalaziz/mini-figma.git
 cd mini-figma
 
 # Install dependencies
@@ -98,4 +98,4 @@ npm run preview
 
 ## 📄 License
 
-MIT License. Created by [Robby](https://github.com/morluto).
+MIT License. Created by [Robby](https://github.com/robbyalaziz).
