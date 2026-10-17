@@ -54,8 +54,8 @@ A fast, responsive, and feature-packed in-browser vector design tool built with 
 
 ```bash
 # Clone the repository
-git clone https://github.com/robbyalaziz/mini-figma.git
-cd mini-figma
+git clone https://github.com/robbyalaziz/minimockupweb.git
+cd minimockupweb
 
 # Install dependencies
 npm install
