@@ -22,8 +22,12 @@ import {
   FileImage,
   Component,
   Boxes,
+  Plus,
+  Check,
+  Sparkles,
 } from 'lucide-react';
-import { CanvasShape } from '../types';
+import { CanvasShape, Viewport } from '../types';
+import { ASSET_LIBRARY, UIAsset } from '../utils/assetLibrary';
 
 interface LayersPanelProps {
   shapes: CanvasShape[];
@@ -35,6 +39,8 @@ interface LayersPanelProps {
   onReorder: (id: string, direction: 'up' | 'down') => void;
   onGroup?: () => void;
   onUngroup?: (groupId: string) => void;
+  onAddShapes?: (shapes: CanvasShape[]) => void;
+  viewport?: Viewport;
 }
 
 export const LayersPanel: React.FC<LayersPanelProps> = ({
@@ -47,11 +53,16 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
   onReorder,
   onGroup,
   onUngroup,
+  onAddShapes,
+  viewport,
 }) => {
   const [activeTab, setActiveTab] = useState<'layers' | 'assets'>('layers');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [nameInput, setNameInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [assetCategory, setAssetCategory] = useState<string>('All');
+  const [assetSearch, setAssetSearch] = useState<string>('');
+  const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
 
   const getShapeIcon = (type: CanvasShape['type']) => {
     switch (type) {
@@ -95,6 +106,23 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
   // Figma renders top = frontmost
   const reversedShapes = [...filteredShapes].reverse();
 
+  const filteredAssets = ASSET_LIBRARY.filter((asset) => {
+    const matchesCat = assetCategory === 'All' || asset.category === assetCategory;
+    const matchesSearch =
+      asset.name.toLowerCase().includes(assetSearch.toLowerCase()) ||
+      asset.description.toLowerCase().includes(assetSearch.toLowerCase());
+    return matchesCat && matchesSearch;
+  });
+
+  const handleInsertAsset = (asset: UIAsset) => {
+    const x = viewport ? Math.round((-viewport.x + 220) / viewport.zoom) : 200;
+    const y = viewport ? Math.round((-viewport.y + 150) / viewport.zoom) : 150;
+    const newShapes = asset.createShapes(x, y);
+    onAddShapes?.(newShapes);
+    setRecentlyAddedId(asset.id);
+    setTimeout(() => setRecentlyAddedId(null), 1200);
+  };
+
   return (
     <aside className="w-64 bg-[#202023] border-r border-[#2e2e33] flex flex-col z-20 select-none shadow-sm">
       {/* Top Tabs: Layers vs Assets */}
@@ -124,18 +152,134 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
         </div>
 
         <span className="text-[10px] font-mono bg-[#2a2a2e] px-1.5 py-0.5 rounded text-[#71717a]">
-          {shapes.length}
+          {activeTab === 'layers' ? shapes.length : filteredAssets.length}
         </span>
       </div>
 
       {activeTab === 'assets' ? (
         /* Assets Tab */
-        <div className="p-4 text-center text-xs text-[#71717a] space-y-2">
-          <Component size={24} className="mx-auto text-[#52525b]" />
-          <p className="font-medium text-[#d4d4d8]">Local Components</p>
-          <p className="text-[11px] leading-relaxed">
-            Create reusable design components by framing your buttons and cards.
-          </p>
+        <div className="flex-1 flex flex-col overflow-hidden bg-[#1c1c1f]">
+          {/* Search bar */}
+          <div className="p-2 border-b border-[#2e2e33]">
+            <div className="flex items-center bg-[#17171a] px-2 py-1.5 rounded-lg border border-[#2e2e33] space-x-1.5">
+              <Search size={12} className="text-[#52525b]" />
+              <input
+                type="text"
+                placeholder="Search components & assets..."
+                value={assetSearch}
+                onChange={(e) => setAssetSearch(e.target.value)}
+                className="w-full bg-transparent text-white text-[11px] outline-none placeholder-[#52525b]"
+              />
+            </div>
+          </div>
+
+          {/* Category Filter Pills */}
+          <div className="px-2 pt-2 pb-1.5 flex items-center space-x-1 overflow-x-auto no-scrollbar border-b border-[#2e2e33]">
+            {(['All', 'Buttons', 'Cards', 'Forms & Badges', 'Avatars & Media'] as const).map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setAssetCategory(cat)}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap transition ${
+                  assetCategory === cat
+                    ? 'bg-[#0d99ff] text-white shadow-xs'
+                    : 'bg-[#27272a] text-[#8e8e93] hover:text-white hover:bg-[#323238]'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Asset Items List */}
+          <div className="flex-1 overflow-y-auto p-2 space-y-2">
+            {filteredAssets.length === 0 ? (
+              <div className="text-center py-12 text-xs text-[#52525b]">
+                No assets found matching "{assetSearch}"
+              </div>
+            ) : (
+              filteredAssets.map((asset) => {
+                const isJustAdded = recentlyAddedId === asset.id;
+                return (
+                  <div
+                    key={asset.id}
+                    onClick={() => handleInsertAsset(asset)}
+                    className="group bg-[#232327] hover:bg-[#28282d] border border-[#2e2e33] hover:border-[#0d99ff] rounded-xl p-2.5 transition cursor-pointer shadow-sm relative overflow-hidden flex flex-col gap-2"
+                  >
+                    {/* Visual Preview / Thumbnail */}
+                    <div className="h-16 w-full rounded-lg bg-[#18181b] border border-[#2e2e33] overflow-hidden flex items-center justify-center relative">
+                      {asset.thumbnailUrl ? (
+                        <img
+                          src={asset.thumbnailUrl}
+                          alt={asset.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        />
+                      ) : (
+                        <div
+                          className="w-full h-full flex items-center justify-center text-white/90 text-xs font-semibold px-2 text-center"
+                          style={{
+                            background: asset.previewBg
+                              ? `linear-gradient(135deg, ${asset.previewBg}33 0%, ${asset.previewBg}11 100%)`
+                              : '#1c1c20',
+                          }}
+                        >
+                          <span
+                            className="px-2.5 py-1 rounded text-[11px] shadow-sm truncate max-w-[170px]"
+                            style={{
+                              backgroundColor: asset.previewBg || '#0d99ff',
+                              color: '#ffffff',
+                            }}
+                          >
+                            {asset.name}
+                          </span>
+                        </div>
+                      )}
+
+                      <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-semibold tracking-wide uppercase bg-[#000000]/70 backdrop-blur-md text-[#d4d4d8] border border-white/10">
+                        {asset.badge || asset.category}
+                      </span>
+                    </div>
+
+                    {/* Metadata & Add Action */}
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0 flex-1 pr-2">
+                        <div className="text-xs font-semibold text-white truncate group-hover:text-[#0d99ff] transition">
+                          {asset.name}
+                        </div>
+                        <p className="text-[10px] text-[#71717a] line-clamp-1">
+                          {asset.description}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleInsertAsset(asset);
+                        }}
+                        className={`flex items-center space-x-1 px-2 py-1 rounded-md text-[10px] font-semibold transition shrink-0 ${
+                          isJustAdded
+                            ? 'bg-[#10b981] text-white'
+                            : 'bg-[#0d99ff15] text-[#0d99ff] hover:bg-[#0d99ff] hover:text-white border border-[#0d99ff40]'
+                        }`}
+                      >
+                        {isJustAdded ? (
+                          <>
+                            <Check size={11} />
+                            <span>Added!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus size={11} />
+                            <span>Insert</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       ) : (
         /* Layers Tab */

@@ -233,6 +233,20 @@ export const App: React.FC = () => {
     setSelectedIds([shape.id]);
   };
 
+  const handleAddShapes = useCallback(
+    (newShapes: CanvasShape[]) => {
+      const updated = [...shapes, ...newShapes];
+      applyShapeUpdate(updated);
+      const grp = newShapes.find((s) => s.type === 'group');
+      if (grp) {
+        setSelectedIds([grp.id]);
+      } else {
+        setSelectedIds(newShapes.map((s) => s.id));
+      }
+    },
+    [shapes, applyShapeUpdate]
+  );
+
   const handleUpdateShape = (id: string, updates: Partial<CanvasShape>) => {
     const updated = shapes.map((s) => (s.id === id ? { ...s, ...updates } : s));
     applyShapeUpdate(updated);
@@ -1017,6 +1031,8 @@ export const App: React.FC = () => {
             onReorder={handleReorder}
             onGroup={handleGroup}
             onUngroup={handleUngroup}
+            onAddShapes={handleAddShapes}
+            viewport={viewport}
           />
         )}
 
